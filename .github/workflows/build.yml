@@ -18,6 +18,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install pyinstaller pywebview pywebview[qt]
       - name: Compilar para Windows
+        shell: pwsh
         run: pyinstaller --onefile --windowed --add-data "resources;resources" --hidden-import pywebview --hidden-import pywebview.platforms.winforms --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
       - name: Subir artefacto (Windows)
         uses: actions/upload-artifact@v4
@@ -40,6 +41,7 @@ jobs:
       - name: Instalar dependencias Python
         run: pip install pyinstaller pywebview pywebview[qt]
       - name: Compilar para Linux
+        shell: bash
         run: |
           pyinstaller --onefile --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" main.py
       - name: Subir artefacto (Linux)
@@ -59,6 +61,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install pyinstaller pywebview pywebview[qt]
       - name: Compilar para macOS
+        shell: bash
         run: |
           pyinstaller --onefile --windowed --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.cocoa --name "ClinpClipper" main.py
       - name: Subir artefacto (macOS)

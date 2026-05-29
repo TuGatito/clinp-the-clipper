@@ -136,7 +136,7 @@ pip install pyinstaller
 pyinstaller --onefile \
   --add-data "resources:resources" \
   --hidden-import pywebview \
-  --hidden-import pywebview.platforms.gtk \   # for Linux
+  --hidden-import pywebview.platforms.gtk \
   --name "ClinpClipper" main.py
 ```
 
