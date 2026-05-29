@@ -1,0 +1,203 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neutralinojs sample app</title>
+    <link rel="icon" href="/Logo-Clinp.ico" type="image/x-icon">
+    <link rel="stylesheet" href="/styles.css" />
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+  </head>
+  <body>
+    <div class="tui-container" x-data="AppInit()" x-init="init()">
+      <header class="tui-header">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+          "
+        >
+          <span x-text="t('app_title')"></span>
+          <select
+            x-model="lang"
+            @change="setLang(lang)"
+            class="tui-lang-select"
+          >
+            <option value="es">🇪🇸 Español</option>
+            <option value="en">🇬🇧 English</option>
+            <option value="fr">🇫🇷 Français</option>
+            <option value="pt">🇵🇹 Português</option>
+            <option value="it">🇮タ Italia</option>
+            <option value="de">🇩🇪 Deutsch</option>
+            <option value="ru">🇷🇺 Русский</option>
+            <option value="zh">🇨🇳 中文</option>
+            <option value="ja">🇯🇵 日本語</option>
+            <option value="ko">🇰🇷 한국어</option>
+            <option value="hi">🇮🇳 िंदी</option>
+            <option value="pl">🇵🇱 Polski</option>
+            <option value="nl">🇳🇱 Nederlands</option>
+          </select>
+        </div>
+      </header>
+
+      <main class="tui-body">
+        <section class="tui-col left-col">
+          <div class="tui-group">
+            <label class="tui-label" x-text="t('label_source_video')"></label>
+            <div class="tui-input-row">
+              <input
+                type="text"
+                class="tui-input"
+                x-model="sourceVideoPath"
+                readonly
+              />
+              <button
+                class="tui-btn"
+                @click="chooseSourceVideo()"
+                x-text="t('btn_select')"
+              ></button>
+            </div>
+          </div>
+
+          <div class="tui-group">
+            <label class="tui-label" x-text="t('label_dest_folder')"></label>
+            <div class="tui-input-row">
+              <input
+                type="text"
+                class="tui-input"
+                x-model="saveDirPath"
+                readonly
+              />
+              <button
+                class="tui-btn"
+                @click="chooseSaveDir()"
+                x-text="t('btn_select')"
+              ></button>
+            </div>
+          </div>
+
+          <div class="tui-group">
+            <label class="tui-label" x-text="t('label_base_name')"></label>
+            <div class="tui-input-row">
+              <input type="text" class="tui-input" x-model="base_name" />
+            </div>
+          </div>
+
+          <div class="tui-actions">
+            <button
+              class="tui-btn-primary"
+              @click="generateClips()"
+              x-text="t('btn_generate')"
+            ></button>
+            <button
+              class="tui-btn"
+              @click="cancelGeneration()"
+              x-show="isProcessing"
+              style="margin-top: 8px"
+              x-text="t('btn_cancel')"
+            ></button>
+          </div>
+        </section>
+
+        <section class="tui-col right-col">
+          <label class="tui-label" x-text="t('label_clip_list')"></label>
+
+          <div class="tui-table-wrapper">
+            <table class="tui-table">
+              <tbody>
+                <template x-for="(clip, index) in clips" :key="clip.id">
+                  <tr>
+                    <td>
+                      <input
+                        type="text"
+                        class="tui-input"
+                        x-model="clip.start"
+                        style="width: 6rem; text-align: center"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        class="tui-input"
+                        x-model="clip.end"
+                        style="width: 6rem; text-align: center"
+                      />
+                    </td>
+                    <td>
+                      <button
+                        class="tui-btn-inline"
+                        @click="deleteClip(index)"
+                        x-text="t('btn_delete')"
+                      ></button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="tui-clip-management">
+            <button
+              class="tui-btn"
+              @click="addNewClip"
+              x-text="t('btn_add_clip')"
+            ></button>
+            <button
+              class="tui-btn"
+              @click="deleteLastClip"
+              x-text="t('btn_remove_last')"
+            ></button>
+          </div>
+
+          <div class="tui-group load-section">
+            <label class="tui-label" x-text="t('label_load_text')"></label>
+            <div class="tui-input-row">
+              <input type="text" class="tui-input" x-model="text_file" />
+              <button
+                class="tui-btn"
+                @click="readTextFile()"
+                x-text="t('btn_read')"
+              ></button>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <footer class="tui-footer">
+        <div class="tui-progress-line">
+          <span class="tui-label" x-text="t('label_progress')"></span>
+          <span class="tui-bar" x-text="progressBar()"></span>
+          <span class="tui-status" x-text="progressStatus()"></span>
+          <span x-show="currentClipName" class="tui-status">
+            <span x-text="t('clip_current')"></span>
+            <span x-text="currentClipName"></span>
+          </span>
+        </div>
+        <button
+          class="tui-btn"
+          @click="clearLogs()"
+          style="margin-top: 8px"
+          x-text="t('btn_clear_logs')"
+        ></button>
+        <div class="tui-log-line">
+          <template x-for="log in logs" :key="log.id || Math.random()">
+            <div class="tui-log-item">
+              <span class="tui-log-text" x-text="log.info"></span>
+
+              <template x-if="log.status">
+                <span class="tui-ok"> OK</span>
+              </template>
+            </div>
+          </template>
+        </div>
+      </footer>
+    </div>
+    <script src="/js/locales.nerd.js"></script>
+    <!-- Your app's source files -->
+    <script src="/js/main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,318 @@
+/* ==========================================================================
+   VARIABLES DE COLOR (Personaliza tu tema TUI aquí)
+   ========================================================================== */
+
+/* styles.css - Nuevo bloque al inicio */
+@font-face {
+  font-family: "Terminess NerdFont";
+  src: url("/fonts/DepartureMonoNerdFontMono-Regular.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap; /* Mejora la velocidad de carga */
+}
+
+:root {
+  --bg-main: #0c0c0d;
+  /* Fondo de la terminal */
+  --bg-card: #141416;
+  /* Fondo del contenedor de la app */
+  --border-color: #44444c;
+  /* Color de las líneas divisoras ascii */
+  --text-muted: #8a8a93;
+  /* Texto secundario o etiquetas */
+  --text-bright: #ffffff;
+  /* Texto resaltado / Títulos */
+  --accent-color: #00ff66;
+  /* Color TUI principal (Verde clásico) */
+  --accent-dim: #00441b;
+  /* Color de acento apagado (fondos) */
+  --input-text: #00e5ff;
+  /* Color del texto dentro de inputs */
+
+  --font-tui:
+    "Terminess NerdFont", "Noto Sans CJK SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", monospace;
+}
+
+/* ==========================================================================
+   ESTILOS GENERALES
+   ========================================================================== */
+body,
+button,
+input,
+.tui-log-text,
+.tui-table {
+  font-family:
+    "Terminess NerdFont", "Noto Sans CJK SC", "Microsoft YaHei",
+    "WenQuanYi Micro Hei", monospace;
+  /* Esta propiedad es clave, especialmente para pantallas de alta resolución */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+body {
+  background-color: var(--bg-main);
+  color: var(--text-muted);
+  font-family: var(--font-tui);
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 15px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  box-sizing: border-box;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* Contenedor principal estilo Ventana de Terminal */
+.tui-container {
+  background-color: var(--bg-card);
+  border: 2px solid var(--border-color);
+  width: 100%;
+  max-width: 850px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+}
+
+/* Encabezado */
+.tui-header {
+  border-bottom: 1px solid var(--border-color);
+  padding: 10px 15px;
+  color: var(--text-bright);
+  font-weight: bold;
+  letter-spacing: 0.5px;
+}
+
+.tui-lang-select {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--accent-color);
+  font-family: var(--font-tui);
+  font-size: 12px;
+  padding: 4px 8px;
+  cursor: pointer;
+}
+.tui-lang-select:hover {
+  background-color: var(--accent-dim);
+}
+
+.tui-lang-select:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.tui-lang-select option {
+  background-color: var(--bg-card); /* fondo de cada opción */
+  color: var(--text-muted); /* color de texto */
+}
+
+/* Al pasar el ratón por una opción (en navegadores que lo soporten) */
+.tui-lang-select option:hover {
+  background-color: var(--accent-dim);
+  color: var(--accent-color);
+}
+
+/* Layout de dos columnas distribuidas con Grid */
+.tui-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.tui-col {
+  padding: 20px;
+}
+
+/* Línea divisoria vertical interna */
+.left-col {
+  border-right: 1px solid var(--border-color);
+}
+
+/* ==========================================================================
+   FORMULARIOS E INPUTS (Simulación de corchetes TUI)
+   ========================================================================== */
+.tui-group {
+  margin-bottom: 18px;
+}
+
+.tui-label {
+  display: block;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+}
+
+.tui-input-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.tui-bracket {
+  color: var(--border-color);
+  font-weight: bold;
+  user-select: none;
+}
+
+.tui-input {
+  background: transparent;
+  border: none;
+  color: var(--input-text);
+  font-family: var(--font-tui);
+  font-size: 14px;
+  padding: 4px 5px;
+  flex-grow: 1;
+  outline: none;
+  width: 100%;
+}
+
+/* ==========================================================================
+   BOTONES
+   ========================================================================== */
+.tui-btn {
+  background: transparent;
+  border: none;
+  color: var(--accent-color);
+  font-family: var(--font-tui);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.tui-btn:hover {
+  background-color: var(--accent-color);
+  color: var(--bg-main);
+}
+
+.tui-btn-inline {
+  background: transparent;
+  border: none;
+  color: var(--text-bright);
+  font-family: var(--font-tui);
+  cursor: pointer;
+  padding: 2px 6px;
+}
+
+.tui-btn-inline:hover {
+  background-color: var(--border-color);
+}
+
+/* Botón Destacado de Ejecución */
+.tui-actions {
+  margin-top: 30px;
+}
+
+.tui-btn-primary {
+  background: transparent;
+  border: 1px dashed var(--accent-color);
+  color: var(--accent-color);
+  font-family: var(--font-tui);
+  font-size: 15px;
+  font-weight: bold;
+  padding: 8px 15px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.tui-btn-primary:hover {
+  background-color: var(--accent-dim);
+  border-style: solid;
+}
+
+/* ==========================================================================
+   TABLA DE CLIPS (LISTA)
+   ========================================================================== */
+.tui-table-wrapper {
+  border: 1px solid var(--border-color);
+  margin-bottom: 12px;
+}
+
+.tui-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tui-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  color: var(--input-text);
+}
+
+.tui-table td:last-child {
+  width: 80px;
+  padding: 2px;
+}
+
+.tui-clip-management {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.load-section {
+  border-top: 1px dashed var(--border-color);
+  padding-top: 15px;
+}
+
+/* ==========================================================================
+   FOOTER (PROGRESO Y LOGS)
+   ========================================================================== */
+.tui-footer {
+  border-top: 1px solid var(--border-color);
+  padding: 15px 20px;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+.tui-progress-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tui-bar {
+  color: var(--accent-color);
+  letter-spacing: 1px;
+}
+
+.tui-status {
+  color: var(--text-bright);
+}
+
+.tui-log-line {
+  max-height: 120px;
+  overflow-y: auto;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tui-log-text {
+  color: var(--text-bright);
+}
+
+.tui-ok {
+  color: var(--accent-color);
+  font-weight: bold;
+}
+
+/* ==========================================================================
+   RESPONSIVIDAD (Media Queries)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .tui-body {
+    grid-template-columns: 1fr;
+    /* Cambia a una sola columna */
+  }
+
+  .left-col {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    /* Separador pasa a ser horizontal */
+  }
+}

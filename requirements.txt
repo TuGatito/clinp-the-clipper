@@ -1,0 +1,3 @@
+pywebview
+pywebview[qt]
+pyinstaller

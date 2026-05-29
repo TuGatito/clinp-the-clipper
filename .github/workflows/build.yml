@@ -1,0 +1,121 @@
+name: Build ClinpClipper
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # permite ejecutar manualmente desde GitHub
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install pyinstaller pywebview pywebview[qt]
+
+      - name: Compilar con PyInstaller (Windows)
+        run: |
+          pyinstaller --onefile --windowed ` 
+            --icon=resources/Logo-Clinp.ico `
+            --add-data "resources;resources" `
+            --hidden-import pywebview `
+            --hidden-import pywebview.platforms.winforms `
+            --name "ClinpClipper" `
+            main.py
+
+      - name: Subir artefacto (Windows)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClinpClipper-Windows
+          path: dist/ClinpClipper.exe
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar dependencias
+        run: |
+          pip install pyinstaller pywebview pywebview[qt]
+
+      - name: Compilar con PyInstaller (Linux)
+        run: |
+          pyinstaller --onefile `
+            --icon=resources/Logo-Clinp.ico `
+            --add-data "resources:resources" `
+            --hidden-import pywebview `
+            --hidden-import pywebview.platforms.gtk `
+            --name "ClinpClipper" `
+            main.py
+
+      - name: Subir artefacto (Linux)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClinpClipper-Linux
+          path: dist/ClinpClipper
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar dependencias
+        run: pip install pyinstaller pywebview
+      - name: Compilar para macOS
+        run: |
+          pyinstaller --onefile --windowed `
+            --add-data "resources:resources" `
+            --hidden-import pywebview `
+            --hidden-import pywebview.platforms.cocoa `
+            --name "ClinpClipper" `
+            main.py
+      - name: Subir artefacto (macOS)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ClinpClipper-macOS
+          path: dist/ClinpClipper
+
+  create-release:
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') # solo cuando se pushea una etiqueta v*
+    steps:
+      - name: Descargar artefactos
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Listar artefactos
+        run: ls -la artifacts/*
+
+      - name: Crear Release y subir archivos
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/ClinpClipper-Windows/ClinpClipper.exe
+            artifacts/ClinpClipper-Linux/ClinpClipper
+            artifacts/ClinpClipper-macOS/ClinpClipper
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
