@@ -18,7 +18,7 @@ jobs:
       - name: Instalar dependencias
         run: pip install pyinstaller pywebview pywebview[qt]
       - name: Compilar para Windows
-        run: pyinstaller --onefile --windowed --add-data "resources;resources" --hidden-import pywebview --hidden-import pywebview.platforms.winforms --name "ClinpClipper" main.py
+        run: pyinstaller --onefile --windowed --add-data "resources;resources" --hidden-import pywebview --hidden-import pywebview.platforms.winforms --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
       - name: Subir artefacto (Windows)
         uses: actions/upload-artifact@v4
         with:
