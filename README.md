@@ -22,7 +22,7 @@ It features a clean **TUI‑style interface** (terminal look) built with Python 
 - ⚡ **Fast processing** – uses FFmpeg’s stream copy mode (`-c copy`), no re‑encoding.
 - 📊 **Progress bar** – shows which clip is being processed and overall progress.
 - 🌍 **Multi‑language** – interface available in **English, Spanish, French, Portuguese, Italian, German, Russian, Chinese, Japanese, Korean, Hindi, Polish and Dutch** (detected from your system or manually chosen).
-- 💾 **Remembers your settings** – last used video path, output folder and language are saved.
+- 💾 **Remembers your settings** – last used language is saved.
 - 🧹 **Clear logs** – built‑in log panel with error highlighting.
 
 ---
@@ -43,9 +43,9 @@ Go to the **[Releases page](https://github.com/TuGatito/clinp-the-clipper/releas
 
 | OS       | File name                          |
 |----------|------------------------------------|
-| Windows  | `ClinpClipper-Windows.exe`         |
-| Linux    | `ClinpClipper-Linux`               |
-| macOS    | `ClinpClipper-macOS`               |
+| Windows  | `ClinpClipper-Windows.zip`         |
+| Linux    | `ClinpClipper-Linux.zip`               |
+| macOS    | `ClinpClipper-macOS.zip`               |
 
 After downloading:
 - **Windows**: double‑click the `.exe`.

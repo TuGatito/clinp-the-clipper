@@ -43,7 +43,7 @@ jobs:
       - name: Compilar para Linux
         shell: bash
         run: |
-          pyinstaller --onefile --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" main.py
+          pyinstaller --onefile --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
       - name: Subir artefacto (Linux)
         uses: actions/upload-artifact@v4
         with:
@@ -63,7 +63,7 @@ jobs:
       - name: Compilar para macOS
         shell: bash
         run: |
-          pyinstaller --onefile --windowed --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.cocoa --name "ClinpClipper" main.py
+          pyinstaller --onefile --windowed --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.cocoa --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
       - name: Subir artefacto (macOS)
         uses: actions/upload-artifact@v4
         with:
