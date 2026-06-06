@@ -8,27 +8,102 @@
   src: url("/fonts/DepartureMonoNerdFontMono-Regular.woff") format("woff");
   font-weight: normal;
   font-style: normal;
-  font-display: swap; /* Mejora la velocidad de carga */
+  font-display: swap;
+  /* Mejora la velocidad de carga */
+}
+
+
+/* ==========================================================================
+   TEMAS COMPLETO DE PALETAS OPEN SOURCE (Sustituye a :root)
+   ========================================================================== */
+
+/* 1. DRACULA (Por Defecto) */
+body,
+body.theme-dracula {
+  --bg-main: #282a36;
+  --bg-card: #21222c;
+  --border-color: #44475a;
+  --text-muted: #6272a4;
+  --text-bright: #f8f8f2;
+  --accent-color: #bd93f9;
+  --accent-dim: #342b4e;
+  --input-text: #ff79c6;
+  --font-tui: "Terminess NerdFont", monospace;
+}
+
+/* 2. NORD */
+body.theme-nord {
+  --bg-main: #2e3440;
+  --bg-card: #242933;
+  --border-color: #4c566a;
+  --text-muted: #434c5e;
+  --text-bright: #d8dee9;
+  --accent-color: #88c0d0;
+  --accent-dim: #2f434e;
+  --input-text: #a3be8c;
+}
+
+/* 3. GRUVBOX DARK */
+body.theme-gruvbox {
+  --bg-main: #282828;
+  --bg-card: #1d2021;
+  --border-color: #504945;
+  --text-muted: #928374;
+  --text-bright: #fbf1c7;
+  --accent-color: #fabd2f;
+  --accent-dim: #453b1e;
+  --input-text: #b8bb26;
+}
+
+/* 4. ONE DARK */
+body.theme-onedark {
+  --bg-main: #282c34;
+  --bg-card: #21252b;
+  --border-color: #3e4451;
+  --text-muted: #5c6370;
+  --text-bright: #abb2bf;
+  --accent-color: #61afef;
+  --accent-dim: #22374b;
+  --input-text: #98c379;
+}
+
+/* 5. SOLARIZED DARK */
+body.theme-solarized {
+  --bg-main: #002b36;
+  --bg-card: #073642;
+  --border-color: #586e75;
+  --text-muted: #93a1a1;
+  --text-bright: #fdf6e3;
+  --accent-color: #2aa198;
+  --accent-dim: #004c40;
+  --input-text: #268bd2;
+}
+
+/* 6. MONOKAI */
+body.theme-monokai {
+  --bg-main: #272822;
+  --bg-card: #1e1f1c;
+  --border-color: #3e3d32;
+  --text-muted: #75715e;
+  --text-bright: #f8f8f2;
+  --accent-color: #f92672;
+  --accent-dim: #4a1525;
+  --input-text: #66d9ef;
+}
+
+/* 7. MATRIX (Classic Green Screen) */
+body.theme-matrix {
+  --bg-main: #000000;
+  --bg-card: #050505;
+  --border-color: #003300;
+  --text-muted: #006600;
+  --text-bright: #00ff00;
+  --accent-color: #00ff00;
+  --accent-dim: #001100;
+  --input-text: #00ffcc;
 }
 
 :root {
-  --bg-main: #0c0c0d;
-  /* Fondo de la terminal */
-  --bg-card: #141416;
-  /* Fondo del contenedor de la app */
-  --border-color: #44444c;
-  /* Color de las líneas divisoras ascii */
-  --text-muted: #8a8a93;
-  /* Texto secundario o etiquetas */
-  --text-bright: #ffffff;
-  /* Texto resaltado / Títulos */
-  --accent-color: #00ff66;
-  /* Color TUI principal (Verde clásico) */
-  --accent-dim: #00441b;
-  /* Color de acento apagado (fondos) */
-  --input-text: #00e5ff;
-  /* Color del texto dentro de inputs */
-
   --font-tui:
     "Terminess NerdFont", "Noto Sans CJK SC", "Microsoft YaHei",
     "WenQuanYi Micro Hei", monospace;
@@ -49,6 +124,7 @@ input,
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
 body {
   background-color: var(--bg-main);
   color: var(--text-muted);
@@ -95,6 +171,7 @@ body {
   padding: 4px 8px;
   cursor: pointer;
 }
+
 .tui-lang-select:hover {
   background-color: var(--accent-dim);
 }
@@ -105,8 +182,10 @@ body {
 }
 
 .tui-lang-select option {
-  background-color: var(--bg-card); /* fondo de cada opción */
-  color: var(--text-muted); /* color de texto */
+  background-color: var(--bg-card);
+  /* fondo de cada opción */
+  color: var(--text-muted);
+  /* color de texto */
 }
 
 /* Al pasar el ratón por una opción (en navegadores que lo soporten) */

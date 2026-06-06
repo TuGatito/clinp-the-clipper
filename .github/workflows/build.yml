@@ -15,11 +15,24 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      
       - name: Instalar dependencias
         run: pip install pyinstaller pywebview pywebview[qt]
+
+      - name: Descargar FFmpeg LGPL para Windows
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path bin/windows
+          # Descarga directa del build LGPL de BtbN
+          Invoke-WebRequest -Uri "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-lgpl.zip" -OutFile "ffmpeg.zip"
+          Expand-Archive -Path "ffmpeg.zip" -DestinationPath "ffmpeg_extracted"
+          # Mover el ejecutable buscando dinámicamente en la carpeta extraída
+          Get-ChildItem -Path "ffmpeg_extracted\*\bin\ffmpeg.exe" | Copy-Item -Destination "bin/windows/ffmpeg.exe"
+
       - name: Compilar para Windows
         shell: pwsh
-        run: pyinstaller --onefile --windowed --add-data "resources;resources" --hidden-import pywebview --hidden-import pywebview.platforms.winforms --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
+        run: pyinstaller --onefile --windowed --add-data "resources;resources" --add-data "bin/windows;bin/windows" --hidden-import pywebview --hidden-import pywebview.platforms.winforms --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
+
       - name: Subir artefacto (Windows)
         uses: actions/upload-artifact@v4
         with:
@@ -34,16 +47,32 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      
       - name: Instalar dependencias del sistema
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-0
+      
       - name: Instalar dependencias Python
         run: pip install pyinstaller pywebview pywebview[qt]
+
+      - name: Descargar FFmpeg LGPL para Linux
+        shell: bash
+        run: |
+          mkdir -p bin/linux
+          # Descarga directa del tar.xz LGPL de BtbN
+          curl -L -o ffmpeg.tar.xz https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-lgpl.tar.xz
+          mkdir ffmpeg_extracted
+          tar -xf ffmpeg.tar.xz -C ffmpeg_extracted --strip-components=1
+          # Copiar el binario estático extraído y asegurar permisos
+          cp ffmpeg_extracted/bin/ffmpeg bin/linux/ffmpeg
+          chmod +x bin/linux/ffmpeg
+
       - name: Compilar para Linux
         shell: bash
         run: |
-          pyinstaller --onefile --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
+          pyinstaller --onefile --add-data "resources:resources" --add-data "bin/linux:bin/linux" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
+
       - name: Subir artefacto (Linux)
         uses: actions/upload-artifact@v4
         with:
@@ -58,12 +87,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      
       - name: Instalar dependencias
         run: pip install pyinstaller pywebview pywebview[qt] Pillow
+      
       - name: Compilar para macOS
         shell: bash
         run: |
           pyinstaller --onefile --windowed --add-data "resources:resources" --hidden-import pywebview --hidden-import pywebview.platforms.cocoa --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
+
       - name: Subir artefacto (macOS)
         uses: actions/upload-artifact@v4
         with:
@@ -79,6 +111,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+      
       - name: Crear Release y subir archivos
         uses: softprops/action-gh-release@v1
         with:

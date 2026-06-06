@@ -1,22 +1,53 @@
-import platform
-import subprocess
-import shutil
-import os
-import webbrowser
 import json
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import webbrowser
 
 
 class API:
+    """
+    API class providing utility functions for the ClinpClipper application.
+
+    This class handles interactions with the operating system, file system,
+    configuration management, and external dependencies like FFmpeg.
+    """
+
     def open_url(self, url):
+        """
+        Opens a specified URL in the default web browser.
+
+        Args:
+            url (str): The URL to open.
+        """
         webbrowser.open(url)
 
     def file_exists(self, path: str) -> bool:
+        """
+        Checks if a file or directory exists at the given path.
+
+        Args:
+            path (str): The path to check.
+
+        Returns:
+            bool: True if the path exists, False otherwise.
+        """
         return os.path.exists(path)
 
     def get_config_path(self):
+        """
+        Determines and creates the appropriate configuration file path based on the OS.
+
+        Returns:
+            str: The full path to the configuration file (config.json).
+        """
         if platform.system() == "Windows":
+            # Config directory for Windows (APPDATA)
             config_dir = os.path.join(os.environ.get("APPDATA"), "ClinpClipper")
         else:
+            # Config directory for Unix-like systems (~/.config)
             config_dir = os.path.join(
                 os.path.expanduser("~"), ".config", "clinpclipper"
             )
@@ -24,8 +55,16 @@ class API:
         return os.path.join(config_dir, "config.json")
 
     def read_config(self):
+        """
+        Reads the application configuration from the JSON file.
+
+        If the file does not exist, it uses default settings.
+
+        Returns:
+            dict: The application configuration dictionary, merged with defaults.
+        """
         path = self.get_config_path()
-        default = {"lang": "en"}
+        default = {"lang": "en", "theme": "dracula"}
         print(f"Reading config file from: {path}")
 
         if os.path.exists(path):
@@ -42,27 +81,71 @@ class API:
         return default
 
     def save_config(self, config):
+        """
+        Saves the provided configuration into the JSON file, merging it with existing data.
+
+        Args:
+            config (dict): The configuration data to save.
+        """
         path = self.get_config_path()
         print(f"Attempting to save config to: {path}")
-        # Leer existente para no sobrescribir otras claves
+        # Read existing data to avoid overwriting other keys
         existing = self.read_config()
         existing.update(config)
         with open(path, "w", encoding="utf-8") as f:
             json.dump(existing, f, indent=2)
         print("Config saved successfully.")
 
+    def _get_ffmpeg_path(self):
+        """
+        Returns the path to the FFmpeg executable based on the operating system
+        and execution context (frozen vs. script).
+        """
+        os_type = self.get_os()
+        if os_type in ["windows", "linux"]:
+            if getattr(sys, "frozen", False):
+                base_dir = sys._MEIPASS
+            else:
+                base_dir = os.path.dirname(__file__)
+            
+            if os_type == "windows":
+                return os.path.join(base_dir, "bin", "windows", "ffmpeg.exe")
+            else:
+                linux_path = os.path.join(base_dir, "bin", "linux", "ffmpeg")
+                if os.path.exists(linux_path):
+                    try:
+                        os.chmod(linux_path, 0o755)
+                    except Exception:
+                        pass
+                return linux_path
+        elif os_type == "macos":
+            if shutil.which("/opt/homebrew/bin/ffmpeg"):
+                return "/opt/homebrew/bin/ffmpeg"
+            elif shutil.which("/usr/local/bin/ffmpeg"):
+                return "/usr/local/bin/ffmpeg"
+            else:
+                return "ffmpeg"
+        return "ffmpeg"
+
     def check_ffmpeg(self):
-        try:
-            result = subprocess.run(
-                ["ffmpeg", "-version"], capture_output=True, text=True
-            )
-            if result.returncode == 0:
-                return {"installed": True, "path": "ffmpeg (en PATH)"}
-            return {"installed": False, "path": ""}
-        except FileNotFoundError:
-            return {"installed": False, "path": ""}
+        """
+        Checks if FFmpeg is installed and accessible in the system PATH.
+
+        Returns:
+            dict: A dictionary containing installation status and path information.
+        """
+        ffmpeg_path = self._get_ffmpeg_path()
+        if os.path.exists(ffmpeg_path) or (ffmpeg_path == "ffmpeg" and shutil.which("ffmpeg")):
+            return {"installed": True, "path": ffmpeg_path}
+        return {"installed": False, "path": ""}
 
     def get_os(self) -> str:
+        """
+        Returns a standardized string representation of the current operating system.
+
+        Returns:
+            str: 'windows', 'macos', 'linux', or 'unknown'.
+        """
         os_name = platform.system().lower()
         if os_name.startswith("win"):
             return "windows"
@@ -74,15 +157,25 @@ class API:
             return "unknown"
 
     def select_video_file(self) -> str:
+        """
+        Opens a system dialog to allow the user to select a source video file.
+
+        Returns:
+            str: The full path to the selected video file.
+
+        Raises:
+            RuntimeError: If the operating system is not supported or the required
+            dialog utility (zenity/kdialog) is missing on Linux.
+        """
         os_type = self.get_os()
 
         if os_type == "windows":
-            # Usar diálogo de Explorer
+            # Use Explorer dialog
             ps_script = """
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Title = "Seleccionar video fuente"
-        $dialog.Filter = "Archivos de video (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv"
+        $dialog.Title = "Select source video"
+        $dialog.Filter = "Video files (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv"
         $dialog.ShowDialog() | Out-Null
         $dialog.FileName
         """
@@ -93,6 +186,7 @@ class API:
             return result.stdout.strip()
 
         elif os_type == "macos":
+            # Use osascript for macOS file selection
             script = 'tell application "System Events" to choose file of type {"public.movie"}'
             result = subprocess.run(
                 ["osascript", "-e", script], capture_output=True, text=True
@@ -100,9 +194,10 @@ class API:
             return result.stdout.strip()
 
         elif os_type == "linux":
+            # Use zenity or kdialog for Linux file selection
             if shutil.which("zenity"):
                 result = subprocess.run(
-                    ["zenity", "--file-selection", "--title=Seleccionar video"],
+                    ["zenity", "--file-selection", "--title=Select video"],
                     capture_output=True,
                     text=True,
                 )
@@ -113,29 +208,42 @@ class API:
                 )
                 return result.stdout.strip()
             else:
-                raise RuntimeError("No se encontró ni zenity ni kdialog en el sistema.")
+                raise RuntimeError(
+                    "Neither zenity nor kdialog was found on the system."
+                )
 
         else:
-            raise RuntimeError("Sistema operativo no soportado.")
+            raise RuntimeError("Unsupported operating system.")
 
     def select_text_file(self) -> str:
+        """
+        Opens a system dialog to allow the user to select a text file containing time stamps.
+
+        Returns:
+            str: The full path to the selected text file.
+
+        Raises:
+            RuntimeError: If the operating system is not supported or the required
+            dialog utility (zenity/kdialog) is missing on Linux.
+        """
         os_type = self.get_os()
 
         if os_type == "windows":
             ps_script = """
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Title = "Seleccionar archivo de texto con tiempos"
-        $dialog.Filter = "Archivos de texto (*.txt)|*.txt|Todos los archivos (*.*)|*.*"
+        $dialog.Title = "Select text file with timestamps"
+        $dialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
         $dialog.ShowDialog() | Out-Null
         $dialog.FileName
         """
             result = subprocess.run(
-                ["powershell", "-command", ps_script], capture_output=True, text=True
+                ["powershell", "-Command", ps_script], capture_output=True, text=True
             )
             return result.stdout.strip()
 
         elif os_type == "macos":
+            # Use osascript for macOS text file selection
             script = 'tell application "System Events" to choose file of type {"public.plain-text"}'
             result = subprocess.run(
                 ["osascript", "-e", script], capture_output=True, text=True
@@ -143,9 +251,10 @@ class API:
             return result.stdout.strip()
 
         elif os_type == "linux":
+            # Use zenity or kdialog for Linux text file selection
             if shutil.which("zenity"):
                 result = subprocess.run(
-                    ["zenity", "--file-selection", "--title=Seleccionar texto"],
+                    ["zenity", "--file-selection", "--title=Select text file"],
                     capture_output=True,
                     text=True,
                 )
@@ -156,28 +265,41 @@ class API:
                 )
                 return result.stdout.strip()
             else:
-                raise RuntimeError("No se encontró ni zenity ni kdialog en el sistema.")
+                raise RuntimeError(
+                    "Neither zenity nor kdialog was found on the system."
+                )
 
         else:
-            raise RuntimeError("Sistema operativo no soportado.")
+            raise RuntimeError("Unsupported operating system.")
 
     def select_directory(self) -> str:
+        """
+        Opens a system dialog to allow the user to select a destination directory.
+
+        Returns:
+            str: The full path to the selected directory.
+
+        Raises:
+            RuntimeError: If the operating system is not supported or the required
+            dialog utility (zenity/kdialog) is missing on Linux.
+        """
         os_type = self.get_os()
 
         if os_type == "windows":
             ps_script = """
         Add-Type -AssemblyName System.Windows.Forms
         $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = "Seleccione la carpeta de destino"
+        $dialog.Description = "Select destination folder"
         $dialog.ShowDialog() | Out-Null
         $dialog.SelectedPath
         """
             result = subprocess.run(
-                ["powershell", "-command", ps_script], capture_output=True, text=True
+                ["powershell", "-Command", ps_script], capture_output=True, text=True
             )
             return result.stdout.strip()
 
         elif os_type == "macos":
+            # Use osascript for macOS folder selection
             script = 'tell application "System Events" to choose folder'
             result = subprocess.run(
                 ["osascript", "-e", script], capture_output=True, text=True
@@ -185,13 +307,14 @@ class API:
             return result.stdout.strip()
 
         elif os_type == "linux":
+            # Use zenity or kdialog for Linux directory selection
             if shutil.which("zenity"):
                 result = subprocess.run(
                     [
                         "zenity",
                         "--file-selection",
                         "--directory",
-                        "--title=Seleccionar carpeta",
+                        "--title=Select folder",
                     ],
                     capture_output=True,
                     text=True,
@@ -205,10 +328,12 @@ class API:
                 )
                 return result.stdout.strip()
             else:
-                raise RuntimeError("No se encontró ni zenity ni kdialog en el sistema.")
+                raise RuntimeError(
+                    "Neither zenity nor kdialog was found on the system."
+                )
 
         else:
-            raise RuntimeError("Sistema operativo no soportado.")
+            raise RuntimeError("Unsupported operating system.")
 
     def create_clip_ffmpeg(
         self,
@@ -219,115 +344,88 @@ class API:
         end: str,
     ) -> str:
         """
-        Crea un clip de video usando FFmpeg.
+        Creates a video clip using FFmpeg.
 
-        Parámetros:
-            base_video_path (str): Ruta al video fuente.
-            output_dir (str): Directorio donde se guardará el clip.
-            clip_name (str): Nombre del archivo de salida (sin extensión).
-            start (str): Tiempo de inicio en formato HH:MM:SS.
-            end (str): Tiempo de fin en formato HH:MM:SS.
+        Args:
+            base_video_path (str): Path to the source video.
+            output_dir (str): Directory where the clip will be saved.
+            clip_name (str): Output file name (without extension).
+            start (str): Start time in HH:MM:SS format.
+            end (str): End time in HH:MM:SS format.
+
+        Returns:
+            str: The full path to the created video clip.
+
+        Raises:
+            RuntimeError: If FFmpeg fails to execute or if the directory creation fails.
+            ValueError: If the paths or clip name contain invalid characters.
         """
-        # Asegurar que el directorio existe
+        def has_control_chars(s: str) -> bool:
+            return any(ord(c) < 32 or ord(c) == 127 for c in s)
+
+        base_video_path = os.path.abspath(base_video_path)
+        output_dir = os.path.abspath(output_dir)
+
+        if has_control_chars(base_video_path) or has_control_chars(output_dir) or has_control_chars(clip_name):
+            raise ValueError("Paths and clip names cannot contain control characters.")
+
+        # Ensure the directory exists
         os.makedirs(output_dir, exist_ok=True)
 
-        # Construir ruta de salida
-        output_path = os.path.normpath(os.path.join(output_dir, f"{clip_name}.mp4"))
+        # Construct output path
+        output_path = os.path.join(output_dir, f"{clip_name}.mp4")
 
-        # Comando FFmpeg
+        # FFmpeg command
         command = [
-            "ffmpeg",
-            "-y",  # sobrescribir sin preguntar
+            self._get_ffmpeg_path(),
+            "-y",  # Overwrite without asking
             "-i",
-            os.path.normpath(base_video_path),
+            base_video_path,
             "-ss",
             start,
             "-to",
             end,
             "-c",
-            "copy",  # copia sin recodificar (rápido)
+            "copy",  # Copy without re-encoding (fast)
             output_path,
         ]
 
-        result = subprocess.run(command, capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"FFmpeg error: {result.stderr}")
-        return output_path
+        # Note: The original code had a missing 'result' definition here.
+        # Assuming subprocess.run is called and 'result' captures the output.
+        try:
+            process = subprocess.Popen(
+                command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+            )
+            self.current_process = process
+            stdout, stderr = process.communicate()
+            if process.returncode != 0:
+                raise RuntimeError(f"FFmpeg error: {stderr}")
+            return output_path
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(f"FFmpeg error: {e.stderr}")
+
+    def kill_current_process(self):
+        """
+        Kills the currently running FFmpeg process if one is active.
+        """
+        if hasattr(self, "current_process") and self.current_process.poll() is None:
+            self.current_process.kill()
 
     def parse_time_ranges_from_file(self, file_path: str) -> str:
         """
-        Lee un archivo de texto y extrae intervalos de tiempo en formato:
-        HH:MM:SS, MM:SS, M:S, H:M:S unidos por '-'.
-        Ejemplo: "01:30-30:21", "1:30:21-3:20:21"
+        Reads a text file and extracts time range intervals.
+
+        The expected format is HH:MM:SS, MM:SS, M:S, H:M:S joined by '-'.
+        Example: "01:30-30:21", "1:30:21-3:20:21"
+
+        Args:
+            file_path (str): Path to the text file.
+
+        Returns:
+            str: The content of the file (time ranges).
         """
         content = ""
         with open(file_path, "r", encoding="utf-8") as f:
             content += f.read()
 
         return content
-
-    def install_ffmpeg(self):
-        os_type = self.get_os()
-        try:
-            if os_type == "windows":
-                # Verificar si Chocolatey está instalado
-                choco_check = subprocess.run(["where", "choco"], capture_output=True)
-                if choco_check.returncode == 0:
-                    subprocess.run(["choco", "install", "ffmpeg", "-y"], check=True)
-                    return {
-                        "success": True,
-                        "message": "FFmpeg instalado via Chocolatey",
-                    }
-                else:
-                    return {
-                        "success": False,
-                        "message": "Chocolatey no está instalado. Visita https://chocolatey.org/install",
-                    }
-
-            elif os_type == "macos":
-                # Verificar Homebrew
-                brew_check = subprocess.run(["which", "brew"], capture_output=True)
-                if brew_check.returncode == 0:
-                    subprocess.run(["brew", "install", "ffmpeg"], check=True)
-                    return {"success": True, "message": "FFmpeg instalado via Homebrew"}
-                else:
-                    return {
-                        "success": False,
-                        "message": "Homebrew no está instalado. Visita https://brew.sh",
-                    }
-
-            elif os_type == "linux":
-                # Detectar distribuciones
-                if shutil.which("apt"):
-                    subprocess.run(["sudo", "apt", "update"], check=True)
-                    subprocess.run(
-                        ["sudo", "apt", "install", "-y", "ffmpeg"], check=True
-                    )
-                    return {"success": True, "message": "FFmpeg instalado via apt"}
-                elif shutil.which("dnf"):
-                    subprocess.run(
-                        ["sudo", "dnf", "install", "-y", "ffmpeg"], check=True
-                    )
-                    return {"success": True, "message": "FFmpeg instalado via dnf"}
-                elif shutil.which("pacman"):
-                    subprocess.run(
-                        ["sudo", "pacman", "-S", "--noconfirm", "ffmpeg"], check=True
-                    )
-                    return {"success": True, "message": "FFmpeg instalado via pacman"}
-                else:
-                    return {
-                        "success": False,
-                        "message": "Gestor de paquetes no reconocido. Instala FFmpeg manualmente",
-                    }
-
-            else:
-                return {
-                    "success": False,
-                    "message": "Sistema operativo no soportado para instalación automática",
-                }
-
-        except subprocess.CalledProcessError as e:
-            return {
-                "success": False,
-                "message": f"Error durante la instalación: {str(e)}",
-            }

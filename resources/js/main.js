@@ -12,6 +12,7 @@ function AppInit() {
     progressTotal: 0,
     isProcessing: false,
     lang: "es",
+    theme: "matrix",
 
     t: function (key, params = {}) {
       let text = (locales[this.lang] && locales[this.lang][key]) || key;
@@ -33,12 +34,13 @@ function AppInit() {
         return;
       }
 
-      // ⬇️ DECLARA LA VARIABLE AQUÍ
       let savedLang = null;
 
       try {
         const config = await window.pywebview.api.read_config();
         savedLang = config.lang; // ahora sí funciona
+        this.theme = config.theme || this.theme;
+        this.applyTheme(this.theme);
       } catch (e) {
         console.warn(e);
       }
@@ -62,6 +64,18 @@ function AppInit() {
       }
     },
 
+    applyTheme(newTheme) {
+      this.theme = newTheme;
+      document.body.className = `theme-${newTheme}`;
+      window.pywebview.api.save_config({ lang: this.lang, theme: newTheme }).catch((e) => console.warn(e));
+      this.addLog(`theme changed to ${newTheme.toUpperCase()}`);
+    },
+
+    /**
+     * Checks if a given language code is supported by the application.
+     * @param {string} lang - The language code (e.g., "en", "es").
+     * @returns {boolean} True if the language is supported, false otherwise.
+     */
     isSupportedLang(lang) {
       const supported = [
         "es",
@@ -81,69 +95,57 @@ function AppInit() {
       return supported.includes(lang);
     },
 
+    /**
+     * Sets the application language and persists the configuration.
+     * @param {string} lang - The new language code.
+     * @returns {void}
+     */
     setLang(lang) {
       if (this.isSupportedLang(lang)) {
         this.lang = lang;
         window.pywebview.api
-          .save_config({ lang: lang })
+          .save_config({ lang: lang, theme: this.theme })
           .catch((e) => console.warn(e));
         this.addLog(this.t("log_lang_changed", { lang: lang.toUpperCase() }));
       }
     },
 
-    cancelGeneration() {
+    /**
+     * Cancels the ongoing clip generation process if it is active.
+     * @returns {void}
+     */
+    async cancelGeneration() {
       if (this.isProcessing) {
         this.addLog(this.t("log_cancelling", { clip: this.currentClipName }));
+        this.isProcessing = false;
+        try {
+          await window.pywebview.api.kill_current_process();
+        } catch (e) {
+          this.addLog(
+            this.t("log_cancel_error", { error: e.message || e }),
+            true,
+          );
+        }
       }
     },
 
+    /**
+     * Displays a prompt to the user regarding missing FFmpeg and guides them to the Homebrew formula if confirmed.
+     * @returns {void}
+     */
     showFFmpegPrompt() {
       // Usar confirm nativo (o un modal bonito si prefieres)
       const userChoice = confirm(this.t("prompt_ffmpeg_missing"));
 
       if (userChoice) {
-        this.installFFmpeg();
-      } else {
-        this.showManualDownloadGuide();
+        window.pywebview.api.open_url("https://formulae.brew.sh/formula/ffmpeg");
       }
     },
 
-    async installFFmpeg() {
-      this.addLog(this.t("log_installing_ffmpeg"));
-      const result = await window.pywebview.api.install_ffmpeg();
-
-      if (result.success) {
-        this.addLog(this.t("log_install_success", { message: result.message }));
-        // Verificar nuevamente
-        const ffmpegStatus = await window.pywebview.api.check_ffmpeg();
-        if (ffmpegStatus.installed) {
-          this.addLog(this.t("log_install_ready"));
-        } else {
-          this.addLog(this.t("log_install_not_detected"), true);
-        }
-      } else {
-        this.addLog(
-          this.t("log_install_failed", { message: result.message }),
-          true,
-        );
-        this.showManualDownloadGuide();
-      }
-    },
-
-    async showManualDownloadGuide() {
-      const os = await window.pywebview.api.get_os();
-      let url = "https://ffmpeg.org/download.html";
-      const instructions = this.t(`instructions_${os}`);
-
-      const confirmOpen = confirm(
-        this.t("prompt_manual_guide", { os, instructions }),
-      );
-      if (confirmOpen) {
-        window.pywebview.api.open_url(url);
-      }
-    },
-
-    // Método para generar la barra visual (ejemplo: 20 caracteres)
+    /**
+     * Generates a visual progress bar string representation.
+     * @returns {string} The formatted progress bar string.
+     */
     progressBar() {
       if (this.progressTotal === 0) return this.t("progress_bar_empty");
       const percent = this.progressCurrent / this.progressTotal;
@@ -153,7 +155,10 @@ function AppInit() {
       return "[" + "█".repeat(filled) + "░".repeat(empty) + "]";
     },
 
-    // Método para obtener el texto "3/5 clips (60%)"
+    /**
+     * Retrieves the current progress status in a human-readable format.
+     * @returns {string} A string showing current/total clips and percentage (e.g., "3/5 clips (60%)").
+     */
     progressStatus() {
       if (this.progressTotal === 0) return "0/0 clips (0%)";
       const percent = Math.round(
@@ -166,6 +171,10 @@ function AppInit() {
       });
     },
 
+    /**
+     * Asynchronously prompts the user to select the source video file.
+     * @returns {Promise<void>}
+     */
     async chooseSourceVideo() {
       this.addLog(this.t("log_start_dialog"));
 
@@ -182,6 +191,10 @@ function AppInit() {
       }
     },
 
+    /**
+     * Asynchronously prompts the user to select the destination directory for saving clips.
+     * @returns {Promise<void>}
+     */
     async chooseSaveDir() {
       try {
         const path = await window.pywebview.api.select_directory();
@@ -199,6 +212,11 @@ function AppInit() {
       }
     },
 
+    /**
+     * Initiates the clip generation process by iterating over all defined clips
+     * and calling the backend API for processing.
+     * @returns {void}
+     */
     async generateClips() {
       if (this.isProcessing) {
         this.addLog(this.t("log_already_in_process"), true);
@@ -276,6 +294,10 @@ function AppInit() {
       this.addLog(this.t("log_processing_finished"));
     },
 
+    /**
+     * Adds a new default clip (start="00:00", end="00:00") to the clips array.
+     * @returns {void}
+     */
     addNewClip() {
       const clipCount = this.clips.length;
       const newClip = {
@@ -289,6 +311,11 @@ function AppInit() {
       );
     },
 
+    /**
+     * Deletes a clip at the specified index. Re-indexes subsequent clips.
+     * @param {number} index - The index of the clip to delete.
+     * @returns {void}
+     */
     deleteClip(index) {
       const deletedClip = this.clips.splice(index, 1);
       if (deletedClip.length > 0) {
@@ -306,6 +333,10 @@ function AppInit() {
       }
     },
 
+    /**
+     * Deletes the last clip in the clips array.
+     * @returns {void}
+     */
     deleteLastClip() {
       if (this.clips.length > 0) {
         const deletedClip = this.clips.pop();
@@ -320,6 +351,10 @@ function AppInit() {
       }
     },
 
+    /**
+     * Asynchronously prompts the user to select a text file and parses time ranges from it.
+     * @returns {Promise<void>}
+     */
     async readTextFile() {
       const textFilePath = await window.pywebview.api.select_text_file();
       this.text_file = textFilePath;
@@ -339,6 +374,12 @@ function AppInit() {
       }
     },
 
+    /**
+     * Parses time range strings from input text and populates the clips array.
+     * @param {string} input - The raw text containing time ranges (e.g., "01:00-02:30").
+     * @param {boolean} [replace=true] - If true, existing clips are cleared before parsing.
+     * @returns {void}
+     */
     parseTimeRanges(input, replace = true) {
       if (replace) this.clips = [];
 
@@ -366,6 +407,12 @@ function AppInit() {
       this.addLog(this.t("log_parsed_clips", { count: this.clips.length }));
     },
 
+    /**
+     * Normalizes various time string formats (e.g., "1:30", "01:30:05") into the standard "HH:MM:SS" format.
+     * @param {string} timeStr - The time string to normalize.
+     * @returns {string} The standardized time string "HH:MM:SS".
+     * @throws {Error} If the time string is invalid or out of bounds.
+     */
     normalizeTime(timeStr) {
       // Dividimos por ":" para obtener las partes
       const parts = timeStr.split(":").map(Number);
@@ -395,6 +442,12 @@ function AppInit() {
       return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
     },
 
+    /**
+     * Adds a new log entry to the internal logs array.
+     * @param {string} message - The message content for the log.
+     * @param {boolean} [isError=false] - Flag to mark the log as an error.
+     * @returns {void}
+     */
     addLog(message, isError = false) {
       const prefix = isError ? "❌ Error" : "✅ Log";
 
@@ -410,11 +463,19 @@ function AppInit() {
       }
     },
 
+    /**
+     * Clears all entries from the internal logs array.
+     * @returns {void}
+     */
     clearLogs() {
       this.logs = [];
       this.addLog(this.t("log_logs_cleared"));
     },
 
+    /**
+     * Validates the base name. If it contains forbidden characters, it sanitizes the name.
+     * @returns {void}
+     */
     validateBaseName() {
       if (!this.base_name.trim()) {
         this.addLog(this.t("log_base_name_empty"), true);
@@ -436,3 +497,5 @@ function AppInit() {
     },
   };
 }
+
+
