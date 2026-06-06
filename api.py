@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import sys
 import webbrowser
-
+import webview
 
 class API:
     """
@@ -14,6 +14,9 @@ class API:
     This class handles interactions with the operating system, file system,
     configuration management, and external dependencies like FFmpeg.
     """
+
+    def set_window(self, window):
+        self.window = window
 
     def open_url(self, url):
         """
@@ -167,53 +170,9 @@ class API:
             RuntimeError: If the operating system is not supported or the required
             dialog utility (zenity/kdialog) is missing on Linux.
         """
-        os_type = self.get_os()
-
-        if os_type == "windows":
-            # Use Explorer dialog
-            ps_script = """
-        Add-Type -AssemblyName System.Windows.Forms
-        $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Title = "Select source video"
-        $dialog.Filter = "Video files (*.mp4;*.avi;*.mov;*.mkv)|*.mp4;*.avi;*.mov;*.mkv"
-        $dialog.ShowDialog() | Out-Null
-        $dialog.FileName
-        """
-
-            result = subprocess.run(
-                ["powershell", "-Command", ps_script], capture_output=True, text=True
-            )
-            return result.stdout.strip()
-
-        elif os_type == "macos":
-            # Use osascript for macOS file selection
-            script = 'tell application "System Events" to choose file of type {"public.movie"}'
-            result = subprocess.run(
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
-            return result.stdout.strip()
-
-        elif os_type == "linux":
-            # Use zenity or kdialog for Linux file selection
-            if shutil.which("zenity"):
-                result = subprocess.run(
-                    ["zenity", "--file-selection", "--title=Select video"],
-                    capture_output=True,
-                    text=True,
-                )
-                return result.stdout.strip()
-            elif shutil.which("kdialog"):
-                result = subprocess.run(
-                    ["kdialog", "--getopenfilename"], capture_output=True, text=True
-                )
-                return result.stdout.strip()
-            else:
-                raise RuntimeError(
-                    "Neither zenity nor kdialog was found on the system."
-                )
-
-        else:
-            raise RuntimeError("Unsupported operating system.")
+        file_types = ("Video Files (*.mp4;*.mkv;*.avi;*.mov)", "All files (*.*)")
+        res = self.window.create_file_dialog(webview.FileDialog.OPEN, allow_multiple=False, file_types=file_types) 
+        return res[0].strip() if res else ""
 
     def select_text_file(self) -> str:
         """
@@ -226,51 +185,9 @@ class API:
             RuntimeError: If the operating system is not supported or the required
             dialog utility (zenity/kdialog) is missing on Linux.
         """
-        os_type = self.get_os()
-
-        if os_type == "windows":
-            ps_script = """
-        Add-Type -AssemblyName System.Windows.Forms
-        $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Title = "Select text file with timestamps"
-        $dialog.Filter = "Text files (*.txt)|*.txt|All files (*.*)|*.*"
-        $dialog.ShowDialog() | Out-Null
-        $dialog.FileName
-        """
-            result = subprocess.run(
-                ["powershell", "-Command", ps_script], capture_output=True, text=True
-            )
-            return result.stdout.strip()
-
-        elif os_type == "macos":
-            # Use osascript for macOS text file selection
-            script = 'tell application "System Events" to choose file of type {"public.plain-text"}'
-            result = subprocess.run(
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
-            return result.stdout.strip()
-
-        elif os_type == "linux":
-            # Use zenity or kdialog for Linux text file selection
-            if shutil.which("zenity"):
-                result = subprocess.run(
-                    ["zenity", "--file-selection", "--title=Select text file"],
-                    capture_output=True,
-                    text=True,
-                )
-                return result.stdout.strip()
-            elif shutil.which("kdialog"):
-                result = subprocess.run(
-                    ["kdialog", "--getopenfilename"], capture_output=True, text=True
-                )
-                return result.stdout.strip()
-            else:
-                raise RuntimeError(
-                    "Neither zenity nor kdialog was found on the system."
-                )
-
-        else:
-            raise RuntimeError("Unsupported operating system.")
+        file_types = ("Text File (*.txt)", "All files (*.*)")
+        res = self.window.create_file_dialog(webview.FileDialog.OPEN, allow_multiple=False, file_types=file_types) 
+        return res[0].strip() if res else ""
 
     def select_directory(self) -> str:
         """
@@ -283,57 +200,8 @@ class API:
             RuntimeError: If the operating system is not supported or the required
             dialog utility (zenity/kdialog) is missing on Linux.
         """
-        os_type = self.get_os()
-
-        if os_type == "windows":
-            ps_script = """
-        Add-Type -AssemblyName System.Windows.Forms
-        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        $dialog.Description = "Select destination folder"
-        $dialog.ShowDialog() | Out-Null
-        $dialog.SelectedPath
-        """
-            result = subprocess.run(
-                ["powershell", "-Command", ps_script], capture_output=True, text=True
-            )
-            return result.stdout.strip()
-
-        elif os_type == "macos":
-            # Use osascript for macOS folder selection
-            script = 'tell application "System Events" to choose folder'
-            result = subprocess.run(
-                ["osascript", "-e", script], capture_output=True, text=True
-            )
-            return result.stdout.strip()
-
-        elif os_type == "linux":
-            # Use zenity or kdialog for Linux directory selection
-            if shutil.which("zenity"):
-                result = subprocess.run(
-                    [
-                        "zenity",
-                        "--file-selection",
-                        "--directory",
-                        "--title=Select folder",
-                    ],
-                    capture_output=True,
-                    text=True,
-                )
-                return result.stdout.strip()
-            elif shutil.which("kdialog"):
-                result = subprocess.run(
-                    ["kdialog", "--getexistingdirectory"],
-                    capture_output=True,
-                    text=True,
-                )
-                return result.stdout.strip()
-            else:
-                raise RuntimeError(
-                    "Neither zenity nor kdialog was found on the system."
-                )
-
-        else:
-            raise RuntimeError("Unsupported operating system.")
+        res = self.window.create_file_dialog(webview.FileDialog.FOLDER) # 2 es webview.FOLDER_DIALOG
+        return res.strip() if res else ""
 
     def create_clip_ffmpeg(
         self,
