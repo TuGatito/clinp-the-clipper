@@ -71,7 +71,7 @@ jobs:
       - name: Compilar para Linux
         shell: bash
         run: |
-          pyinstaller --onefile --add-data "resources:resources" --add-data "bin/linux:bin/linux" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
+          pyinstaller --onefile --windowed --add-data "resources:resources" --add-data "bin/linux:bin/linux" --hidden-import pywebview --hidden-import pywebview.platforms.gtk --name "ClinpClipper" --icon=resources/Logo-Clinp.ico main.py
 
       - name: Subir artefacto (Linux)
         uses: actions/upload-artifact@v4
